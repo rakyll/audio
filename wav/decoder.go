@@ -199,8 +199,8 @@ func (d *Decoder) PCMBuffer(buf *audio.PCMBuffer) error {
 		err = nil
 	}
 	buf.Format = format
-	if buf.DataType != audio.Integer {
-		buf.DataType = audio.Integer
+	if buf.Type != audio.Integer {
+		buf.Type = audio.Integer
 	}
 
 	return err

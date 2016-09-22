@@ -10,12 +10,12 @@ var (
 	ErrInvalidBuffer = errors.New("invalid buffer")
 )
 
-// DataFormat is an enum type to indicate the underlying data format used.
-type DataFormat int
+// DataType is an enum type to indicate the underlying data format used.
+type DataType int
 
 const (
 	// Unknown refers to an unknown format
-	Unknown DataFormat = iota
+	Unknown DataType = iota
 	// Integer represents the int type.
 	// it represents the native int format used in audio buffers.
 	Integer
@@ -30,10 +30,13 @@ const (
 type Format struct {
 	// NumChannels is the number of channels contained in the data
 	NumChannels int
+
 	// SampleRate is the sampling rate in Hz
 	SampleRate int
+
 	// BitDepth is the number of bits of data for each sample
 	BitDepth int
+
 	// Endianess indicate how the byte order of underlying bytes
 	Endianness binary.ByteOrder
 }
@@ -43,16 +46,21 @@ type Format struct {
 type PCMBuffer struct {
 	// Format describes the format of the buffer data.
 	Format *Format
+
 	// Ints is a store for audio sample data as integers.
 	Ints []int
+
 	// Floats is a store for audio samples data as float64.
 	Floats []float64
+
 	// Bytes is a store for audio samples data as raw bytes.
 	Bytes []byte
+
 	// DataType indicates the primary format used for the underlying data.
 	// The consumer of the buffer might want to look at this value to know what store
 	// to use to optimaly retrieve data.
-	DataType DataFormat
+	Type DataType
+
 	// framePos is the position of the last frame we read
 	framePos int64
 }
@@ -60,27 +68,27 @@ type PCMBuffer struct {
 // NewPCMIntBuffer returns a new PCM buffer backed by the passed integer samples
 func NewPCMIntBuffer(data []int, format *Format) *PCMBuffer {
 	return &PCMBuffer{
-		Format:   format,
-		DataType: Integer,
-		Ints:     data,
+		Format: format,
+		Type:   Integer,
+		Ints:   data,
 	}
 }
 
 // NewPCMFloatBuffer returns a new PCM buffer backed by the passed float samples
 func NewPCMFloatBuffer(data []float64, format *Format) *PCMBuffer {
 	return &PCMBuffer{
-		Format:   format,
-		DataType: Float,
-		Floats:   data,
+		Format: format,
+		Type:   Float,
+		Floats: data,
 	}
 }
 
 // NewPCMByteBuffer returns a new PCM buffer backed by the passed float samples
 func NewPCMByteBuffer(data []byte, format *Format) *PCMBuffer {
 	return &PCMBuffer{
-		Format:   format,
-		DataType: Byte,
-		Bytes:    data,
+		Format: format,
+		Type:   Byte,
+		Bytes:  data,
 	}
 }
 
@@ -90,7 +98,7 @@ func (b *PCMBuffer) Len() int {
 		return 0
 	}
 
-	switch b.DataType {
+	switch b.Type {
 	case Integer:
 		return len(b.Ints)
 	case Float:
@@ -111,7 +119,7 @@ func (b *PCMBuffer) Size() (numFrames int) {
 	if numChannels == 0 {
 		numChannels = 1
 	}
-	switch b.DataType {
+	switch b.Type {
 	case Integer:
 		numFrames = len(b.Ints) / numChannels
 	case Float:
@@ -129,8 +137,8 @@ func (b *PCMBuffer) Clone() *PCMBuffer {
 	if b == nil {
 		return nil
 	}
-	newB := &PCMBuffer{DataType: b.DataType}
-	switch b.DataType {
+	newB := &PCMBuffer{Type: b.Type}
+	switch b.Type {
 	case Integer:
 		newB.Ints = make([]int, len(b.Ints))
 		copy(newB.Ints, b.Ints)
@@ -155,7 +163,7 @@ func (b *PCMBuffer) AsInt16s() (out []int16) {
 	if b == nil {
 		return nil
 	}
-	switch b.DataType {
+	switch b.Type {
 	case Integer, Float:
 		out = make([]int16, len(b.Ints))
 		for i := 0; i < len(b.Ints); i++ {
@@ -179,7 +187,7 @@ func (b *PCMBuffer) AsInt32s() (out []int32) {
 	if b == nil {
 		return nil
 	}
-	switch b.DataType {
+	switch b.Type {
 	case Integer, Float:
 		out = make([]int32, len(b.Ints))
 		for i := 0; i < len(b.Ints); i++ {
@@ -203,7 +211,7 @@ func (b *PCMBuffer) AsInt64s() (out []int64) {
 	if b == nil {
 		return nil
 	}
-	switch b.DataType {
+	switch b.Type {
 	case Integer, Float:
 		out = make([]int64, len(b.Ints))
 		for i := 0; i < len(b.Ints); i++ {
@@ -227,7 +235,7 @@ func (b *PCMBuffer) AsInts() (out []int) {
 	if b == nil {
 		return nil
 	}
-	switch b.DataType {
+	switch b.Type {
 	case Integer:
 		return b.Ints
 	case Float:
@@ -248,12 +256,30 @@ func (b *PCMBuffer) AsInts() (out []int) {
 	return out
 }
 
+func (b *PCMBuffer) AsBytes() []byte {
+	if b == nil {
+		return nil
+	}
+	switch b.Type {
+	case Integer:
+		out := make([]byte, len(b.Ints))
+		for i := 0; i < len(b.Ints); i++ {
+			out[i] = byte(b.Ints[i])
+		}
+		return out
+	case Byte:
+		return b.Bytes
+	}
+
+	panic("not implemented")
+}
+
 // AsFloat32s returns the buffer samples as float32 sample values.
 func (b *PCMBuffer) AsFloat32s() (out []float32) {
 	if b == nil {
 		return nil
 	}
-	switch b.DataType {
+	switch b.Type {
 	case Integer:
 		out = make([]float32, len(b.Ints))
 		for i := 0; i < len(b.Ints); i++ {
@@ -282,7 +308,7 @@ func (b *PCMBuffer) AsFloat64s() (out []float64) {
 	if b == nil {
 		return nil
 	}
-	switch b.DataType {
+	switch b.Type {
 	case Integer:
 		out = make([]float64, len(b.Ints))
 		for i := 0; i < len(b.Ints); i++ {
@@ -308,7 +334,7 @@ func (b *PCMBuffer) AsFloat64s() (out []float64) {
 // Note that if the underlying data is changed, it is the caller responsibility
 // to refresh the cache.
 func (b *PCMBuffer) CacheInts() {
-	if b == nil || b.DataType == Integer {
+	if b == nil || b.Type == Integer {
 		return
 	}
 	b.Ints = b.AsInts()
@@ -319,7 +345,7 @@ func (b *PCMBuffer) CacheInts() {
 // Note that if the underlying data is changed, it is the caller responsibility
 // to refresh the cache.
 func (b *PCMBuffer) CacheFloat64s() {
-	if b == nil || b.DataType == Float {
+	if b == nil || b.Type == Float {
 		return
 	}
 	b.Ints = b.AsInts()
@@ -327,11 +353,11 @@ func (b *PCMBuffer) CacheFloat64s() {
 
 // SwitchPrimaryType is a convenience method to switch the primary data type.
 // Use this if you process/swap a different type than the original type.
-func (b *PCMBuffer) SwitchPrimaryType(t DataFormat) {
-	if b == nil || t == b.DataType {
+func (b *PCMBuffer) SwitchPrimaryType(t DataType) {
+	if b == nil || t == b.Type {
 		return
 	}
-	b.DataType = t
+	b.Type = t
 	switch t {
 	case Integer:
 		b.Ints = b.AsInts()
