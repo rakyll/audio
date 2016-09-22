@@ -138,7 +138,7 @@ func (d *Decoder) FullPCMBuffer() (*audio.PCMBuffer, error) {
 
 	i := 0
 	for err == nil {
-		_, err = d.PCMChunk.Read(sampleBufData)
+		n, err := d.PCMChunk.Read(sampleBufData)
 		if err != nil {
 			break
 		}
@@ -148,6 +148,7 @@ func (d *Decoder) FullPCMBuffer() (*audio.PCMBuffer, error) {
 		if i == len(buf.Ints) {
 			buf.Ints = append(buf.Ints, make([]int, 4096)...)
 		}
+		buf.Bytes = append(buf.Bytes, sampleBufData[:n]...)
 	}
 	buf.Ints = buf.Ints[:i]
 

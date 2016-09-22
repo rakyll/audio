@@ -262,15 +262,14 @@ func (b *PCMBuffer) AsBytes() []byte {
 	}
 	switch b.Type {
 	case Integer:
-		out := make([]byte, len(b.Ints))
+		buf := new(bytes.Buffer)
 		for i := 0; i < len(b.Ints); i++ {
-			out[i] = byte(b.Ints[i])
+			binary.Write(buf, b.Format.Endianness, int64(b.Ints[i]))
 		}
-		return out
+		return buf.Bytes()
 	case Byte:
 		return b.Bytes
 	}
-
 	panic("not implemented")
 }
 

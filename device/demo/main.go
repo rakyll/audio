@@ -28,5 +28,10 @@ func main() {
 	}
 	dev.Play()
 
+	time.Sleep(5 * time.Second)
+	dev.Pause()
+	time.Sleep(time.Second)
+	dev.Play()
+
 	time.Sleep(time.Minute)
 }
